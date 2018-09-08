@@ -1,0 +1,25 @@
+trigger BCsearchCreate on Matter_Billing_Contact__c (before update) {
+public string bcEmail;    
+List<Contact> cquery = new List <Contact>();
+for(Matter_Billing_Contact__c BC : trigger.new){
+    if(BC.BCRequest_Email__c != NULL){
+    bcEmail = BC.BCRequest_Email__c;
+	cquery =[select id, Name, email, phone, MailingCity, MailingStreet from Contact where email = :bcEmail];
+    if(cquery.size() == 0){
+         Contact c = new Contact(AccountId = BC.matter__r.Billing_Account2__c,
+                                 email = BC.BCRequest_Email__c,
+                                 phone = BC.BCRequest_Phone__c,
+        						 firstname = BC.BCRequest_FirstName__c,
+                                 lastname = BC.BCRequest_LastName__c);
+        insert c;
+        BC.Contact__c = c.id;
+    }
+    else {
+        BC.Contact__c = cquery[0].id;
+    }
+  }
+    else{
+        BC.Waiting_on_BC__c = TRUE;
+    }
+    }
+}
