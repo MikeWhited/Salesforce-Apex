@@ -1,0 +1,22 @@
+trigger InsertMatterAM on Matter__c (before insert,before update) {
+    public Id act;
+    List<Account> q = new List <Account>();
+    for(Matter__c mat: Trigger.new){
+        if(mat.MatterAccount_Manager__c == NULL){
+        act = mat.Billing_Account2__c;
+        q = [select id,Name,PM1__c,PM2__c,PM3__c,Account_Manager2__c FROM Account where id = :act];
+            if(q.size() > 0){
+       			 mat.MatterAccount_Manager__c = q[0].Account_Manager2__c;
+       			 mat.MatterPM_1__c = q[0].PM1__c;
+       			 mat.MatterPM_2__c = q[0].PM2__c;
+      		 	 mat.MatterPM_3__c = q[0].PM3__c;
+            }
+            else{
+                mat.Waiting_on_PM__c = TRUE;
+            }
+        
+        }
+        else{
+            mat.Waiting_on_PM__c = FALSE;
+        }
+    }
