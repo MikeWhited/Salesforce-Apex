@@ -17,6 +17,7 @@ public with sharing class QBRBox {
      public decimal FinalMRR {get; set;}
      public decimal ActiveTotal {get; set;}
      public decimal PartVaultTotal {get; set;}
+     public decimal VaultTotal {get; set;}
      public decimal VaultCnt {get; set;}
      public void GrabAll(){
      Date Present = system.today();
@@ -49,53 +50,103 @@ public with sharing class QBRBox {
               TotMatt += 1;
             }
         }
+//
+//
+//
+//
         decimal XtraMRR = 0;
         for(ContractSpan__c matt2:matterzStay){
             if(matt2.ActiveMatter__c == TRUE && matt2.Contract__r.Type__c == 'Transactional'){
             ActMatt += 1;
                if(matt2.matter__r.Vault_Data_Size__c == 0){
                XtraMRR += math.max(matt2.Contract__r.MinimumMatterCharge__c,(matt2.matter__r.Total_Active_GB__c * matt2.Contract__r.Price_Per_GB__c));
+               ActiveTotal += matt2.matter__r.Total_Active_GB__c;
                }
                else{
                RealActive = (matt2.matter__r.Total_Active_GB__c - matt2.matter__r.Vault_Data_Size__c);
                VaultAndActive = (RealActive * matt2.matter__r.Per_GB_Price_per_Month__c) + (matt2.matter__r.Vault_Data_Size__c * matt2.Contract__r.Price_per_GB_Cold_Storage__c);
+               XtraMRR += math.max(matt2.Contract__r.MinimumMatterCharge__c,VaultAndActive);
+               PartVaultTotal += matt2.matter__r.Vault_Data_Size__c;
+               ActiveTotal += RealActive;
+               RealActive = 0;
                }
             }
             if(matt2.ActiveMatter__c == TRUE && matt2.Contract__r.Type__c != 'Transactional'){
             ActMatt += 1;
+                if(matt2.matter__r.Vault_Data_Size__c == 0){
+                   ActiveTotal += matt2.matter__r.Total_Active_GB__c;
+                   }
+                   else{
+                   RealActive = (matt2.matter__r.Total_Active_GB__c - matt2.matter__r.Vault_Data_Size__c);
+                   VaultAndActive = (RealActive * matt2.matter__r.Per_GB_Price_per_Month__c) + (matt2.matter__r.Vault_Data_Size__c * matt2.Contract__r.Price_per_GB_Cold_Storage__c);
+                   PartVaultTotal += matt2.matter__r.Vault_Data_Size__c;
+                   ActiveTotal += RealActive;
+                   RealActive = 0;
+                   }
             }
             else{
             TotMatt += 1;
             }
      }
+//
+//
+//
+//
         decimal SpanMRR = 0;
         for(ContractSpan__c matt3:matterz2Firm){
             if(matt3.ActiveMatter__c == TRUE && matt3.Contract__r.Type__c == 'Transactional'){
             ActMatt += 1;
                if(matt3.matter__r.Vault_Data_Size__c == 0){
-               XtraMRR += math.max(matt3.Contract__r.MinimumMatterCharge__c,(matt3.matter__r.Total_Active_GB__c * matt3.Contract__r.Price_Per_GB__c));
+               SpanMRR += math.max(matt3.Contract__r.MinimumMatterCharge__c,(matt3.matter__r.Total_Active_GB__c * matt3.Contract__r.Price_Per_GB__c));
                }
                else{
                RealActive = (matt3.matter__r.Total_Active_GB__c - matt3.matter__r.Vault_Data_Size__c);
                VaultAndActive = (RealActive * matt3.matter__r.Per_GB_Price_per_Month__c) + (matt3.matter__r.Vault_Data_Size__c * matt3.Contract__r.Price_per_GB_Cold_Storage__c);
+               SpanMRR += math.max(matt3.Contract__r.MinimumMatterCharge__c,VaultAndActive);
+               PartVaultTotal += matt3.matter__r.Vault_Data_Size__c;
+               ActiveTotal += RealActive;
+               RealActive = 0;
                }
             }
             if(matt3.ActiveMatter__c == TRUE && matt3.Contract__r.Type__c != 'Transactional'){
             ActMatt += 1;
+                if(matt3.matter__r.Vault_Data_Size__c == 0){
+                   ActiveTotal += matt3.matter__r.Total_Active_GB__c;
+                   }
+                   else{
+                   RealActive = (matt3.matter__r.Total_Active_GB__c - matt3.matter__r.Vault_Data_Size__c);
+                   VaultAndActive = (RealActive * matt3.matter__r.Per_GB_Price_per_Month__c) + (matt3.matter__r.Vault_Data_Size__c * matt3.Contract__r.Price_per_GB_Cold_Storage__c);
+                   PartVaultTotal += matt3.matter__r.Vault_Data_Size__c;
+                   ActiveTotal += RealActive;
+                   RealActive = 0;
+                   }
             }
             else{
             TotMatt += 1;
             }
      }
+//
+//
+//
+//
         decimal ColdStorageMRR = 0;
         for(Cold_Storage_Date_Range__c matt4:matterzCold){
             ColdStorageMRR += math.max(matt4.Matter__r.MonthlyMin__c,(matt4.matter__r.Total_Active_GB__c * matt4.matter__r.ColdStoragePrice__c));
+            PartVaultTotal += matt4.matter__r.Total_Active_GB__c;
             TotMatt += 1;
      }
+//
+//
+//
+//
         decimal SubMRR = 0;
          for(Contract con:Subs){
              SubMRR += con.SubscriptionPricePerMonth__c;
      }
+//
+//
+//
+//
      FinalMRR = (BaseMRR + XtraMRR + SpanMRR + ColdStorageMRR + SubMRR);
 }
 }
