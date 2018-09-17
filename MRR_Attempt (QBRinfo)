@@ -1,3 +1,4 @@
+
 public with sharing class QBRBox {
 	public string searchboxstring{get; set;}
      public list<matter__c> matterz {get; set;}
@@ -17,8 +18,10 @@ public with sharing class QBRBox {
      public decimal FinalMRR {get; set;}
      public decimal ActiveTotal {get; set;}
      public decimal PartVaultTotal {get; set;}
+     public decimal FullVaultTotal {get; set;}
      public decimal VaultTotal {get; set;}
      public decimal VaultCnt {get; set;}
+     public decimal ColdCnt {get; set;}
      public void GrabAll(){
      Date Present = system.today();
      matterz=[select ID,Name,MonthlyMin__c,Active__c,First_Data_Set_Date__c,DeactivationDate__c, Salesperson__c,Vault_Data_Size__c,Contract__r.Price_per_GB_Cold_Storage__c,Total_Active_GB__c,Contract_Type__c, Per_GB_Price_per_Month__c, Contract_Billing_Account__c, Contract_EndUser_Account__c,Matter_EndClientAccount__c,Matter_EndClientAccount__r.name,Billing_Account2__c,Matter_End_User__c from Matter__c where Contract_Billing_Account__c like:'%'+searchboxstring+'%' AND (Num_Of_Spans__c = 0 AND ColdStorage__c =0 AND Contract_Type__c = 'Transactional')];   
@@ -31,7 +34,7 @@ public with sharing class QBRBox {
         decimal VaultAndActive = 0;
         for(Matter__c matt:matterz){
             if(matt.Active__c == TRUE){
-                ActMatt += 1;
+                ActMatt ++;
                 if(matt.Vault_Data_Size__c == 0){
                 BaseMRR += math.max(matt.MonthlyMin__c,(matt.Total_Active_GB__c * matt.Per_GB_Price_per_Month__c));
                 ActiveTotal += matt.Total_Active_GB__c;
@@ -47,7 +50,7 @@ public with sharing class QBRBox {
                 }
             }
             else{
-              TotMatt += 1;
+              TotMatt ++;
             }
         }
 //
@@ -57,7 +60,7 @@ public with sharing class QBRBox {
         decimal XtraMRR = 0;
         for(ContractSpan__c matt2:matterzStay){
             if(matt2.ActiveMatter__c == TRUE && matt2.Contract__r.Type__c == 'Transactional'){
-            ActMatt += 1;
+            ActMatt ++;
                if(matt2.matter__r.Vault_Data_Size__c == 0){
                XtraMRR += math.max(matt2.Contract__r.MinimumMatterCharge__c,(matt2.matter__r.Total_Active_GB__c * matt2.Contract__r.Price_Per_GB__c));
                ActiveTotal += matt2.matter__r.Total_Active_GB__c;
@@ -68,11 +71,12 @@ public with sharing class QBRBox {
                XtraMRR += math.max(matt2.Contract__r.MinimumMatterCharge__c,VaultAndActive);
                PartVaultTotal += matt2.matter__r.Vault_Data_Size__c;
                ActiveTotal += RealActive;
+               VaultCnt ++;
                RealActive = 0;
                }
             }
             if(matt2.ActiveMatter__c == TRUE && matt2.Contract__r.Type__c != 'Transactional'){
-            ActMatt += 1;
+            ActMatt ++;
                 if(matt2.matter__r.Vault_Data_Size__c == 0){
                    ActiveTotal += matt2.matter__r.Total_Active_GB__c;
                    }
@@ -81,11 +85,12 @@ public with sharing class QBRBox {
                    VaultAndActive = (RealActive * matt2.matter__r.Per_GB_Price_per_Month__c) + (matt2.matter__r.Vault_Data_Size__c * matt2.Contract__r.Price_per_GB_Cold_Storage__c);
                    PartVaultTotal += matt2.matter__r.Vault_Data_Size__c;
                    ActiveTotal += RealActive;
+                   VaultCnt ++;
                    RealActive = 0;
                    }
             }
             else{
-            TotMatt += 1;
+            TotMatt ++;
             }
      }
 //
@@ -95,7 +100,7 @@ public with sharing class QBRBox {
         decimal SpanMRR = 0;
         for(ContractSpan__c matt3:matterz2Firm){
             if(matt3.ActiveMatter__c == TRUE && matt3.Contract__r.Type__c == 'Transactional'){
-            ActMatt += 1;
+            ActMatt ++;
                if(matt3.matter__r.Vault_Data_Size__c == 0){
                SpanMRR += math.max(matt3.Contract__r.MinimumMatterCharge__c,(matt3.matter__r.Total_Active_GB__c * matt3.Contract__r.Price_Per_GB__c));
                }
@@ -105,11 +110,12 @@ public with sharing class QBRBox {
                SpanMRR += math.max(matt3.Contract__r.MinimumMatterCharge__c,VaultAndActive);
                PartVaultTotal += matt3.matter__r.Vault_Data_Size__c;
                ActiveTotal += RealActive;
+               VaultCnt ++;
                RealActive = 0;
                }
             }
             if(matt3.ActiveMatter__c == TRUE && matt3.Contract__r.Type__c != 'Transactional'){
-            ActMatt += 1;
+            ActMatt ++;
                 if(matt3.matter__r.Vault_Data_Size__c == 0){
                    ActiveTotal += matt3.matter__r.Total_Active_GB__c;
                    }
@@ -118,11 +124,12 @@ public with sharing class QBRBox {
                    VaultAndActive = (RealActive * matt3.matter__r.Per_GB_Price_per_Month__c) + (matt3.matter__r.Vault_Data_Size__c * matt3.Contract__r.Price_per_GB_Cold_Storage__c);
                    PartVaultTotal += matt3.matter__r.Vault_Data_Size__c;
                    ActiveTotal += RealActive;
+                   VaultCnt ++;
                    RealActive = 0;
                    }
             }
             else{
-            TotMatt += 1;
+            TotMatt ++;
             }
      }
 //
@@ -132,8 +139,9 @@ public with sharing class QBRBox {
         decimal ColdStorageMRR = 0;
         for(Cold_Storage_Date_Range__c matt4:matterzCold){
             ColdStorageMRR += math.max(matt4.Matter__r.MonthlyMin__c,(matt4.matter__r.Total_Active_GB__c * matt4.matter__r.ColdStoragePrice__c));
-            PartVaultTotal += matt4.matter__r.Total_Active_GB__c;
-            TotMatt += 1;
+            FullVaultTotal += matt4.matter__r.Total_Active_GB__c;
+            ColdCnt ++;
+            TotMatt ++;
      }
 //
 //
@@ -147,6 +155,7 @@ public with sharing class QBRBox {
 //
 //
 //
+     VaultTotal = FullVaultTotal + PartVaultTotal;
      FinalMRR = (BaseMRR + XtraMRR + SpanMRR + ColdStorageMRR + SubMRR);
 }
 }
