@@ -1,0 +1,16 @@
+@istest
+public class MatterAM_test {
+    
+    public static testMethod void testInsertion(){
+        Account fakeAcct = new  Account(Name = 'AM Test ACCT',Company_Profile__c = 'Other Law Firms',BillingCity = 'Austin', BillingState = 'Texas', Account_Manager2__c = '0051J000004xCSHQA2');
+        insert fakeAcct;
+        Contract fakeCon = new Contract(Name = 'Dummy Contract', Price_Per_GB__c = 40, AccountId = fakeAcct.Id, BillingAccount__c = fakeAcct.Id);
+        insert fakeCon;
+        Matter__c fakeMatt = new Matter__c(Name = 'Fake Matter', Contract__c = fakeCon.Id,MatterUniqueId__c = '78654789654678');
+        insert fakeMatt;
+        List <Matter__c> matqry = [select Name, Contract__c,MatterUniqueId__c,MatterAccount_Manager__c from Matter__c where MatterAccount_Manager__c = '0051J000004xCSHQA2'];
+        system.assertEquals(1, matqry.size());
+        
+
+    }
+}
