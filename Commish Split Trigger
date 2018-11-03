@@ -1,0 +1,19 @@
+trigger CompSplit_Approval on Commission_Split__c (After insert, After update) {
+
+List<Commission_Split__c> cquery = new List <Commission_Split__c>();
+    
+  for(Commission_Split__c Split : trigger.new){
+      cquery =[select id, Approval_Status__c from Commission_Split__c where Approval_Status__c = 'Denied'];
+      delete cquery;
+    // Break from deleting and check if any need to be sent for Approval  
+      if(Split.Approval_Status__c == 'Pending'){
+         Approval.ProcessSubmitRequest req = new Approval.ProcessSubmitRequest();
+         req.setComments(Split.Notes__c);
+         req.setObjectId(Split.Id);
+         Approval.ProcessResult result = Approval.process(req);
+         System.debug('Your Commision Split request has successfully been sent to your manager for approval: '+result.isSuccess());
+
+      }
+
+  }
+}
