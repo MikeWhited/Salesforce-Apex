@@ -1,0 +1,18 @@
+@istest
+public class CompSplit_Test {
+	static testMethod void SplitTest() {
+	  // Create dummy records for test
+      Account Acct = new Account (name = 'Account2', Company_Profile__c = 'AmLaw 200');
+      insert Acct;
+      Contract Dummy = new Contract (name = 'Dummy', StartDate = Date.newInstance(2017,01,01), ContractTerm = 13, AccountId = Acct.Id, BillingAccount__c = Acct.Id);
+      insert Dummy;
+      Matter__c Mat = new Matter__c (name = 'Dummy Matter', MatterUniqueId__c = '6541518681896486', Contract__c = Dummy.Id);
+      insert Mat;
+      Commission_Split__c Split = new Commission_Split__c (Salesperson__c = '0051J000004xCSHQA2', Matter__c = Mat.Id, Split_Pctg__c = 50, Approval_Status__c = 'Pending');
+      insert Split;
+      Commission_Split__c Split2 = new Commission_Split__c (Salesperson__c = '0051J000004xCSHQA2', Matter__c = Mat.Id, Split_Pctg__c = 50, Approval_Status__c = 'Denied');
+      insert Split2;
+      list <Commission_Split__c> SplitQuery =[select Id, Approval_Status__c  from Commission_Split__c];
+      system.assertEquals(1,SplitQuery.size());
+     }
+}
