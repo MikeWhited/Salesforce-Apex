@@ -1,0 +1,40 @@
+trigger NewOrgWorkflow on Contract (after update, after insert) {
+	public ID AccountsID;
+    public ID Record_Type1;
+    public ID Record_Type2;
+    public ID PM;
+    public ID DOQ;
+	List<Contract> cquery = new List <Contract>();
+    List<Account> aquery = new List <Account>();
+    	for(Contract NC : trigger.new){
+            AccountsID = NC.AccountId;
+            PM = '00G1J000002Qs9vUAC';
+            Record_Type1 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('New Org').getRecordTypeId();
+            Record_Type2 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('Onboarding').getRecordTypeId();
+            DOQ = '00G17000001OhFxEAK';
+            cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c from Contract where AccountID = :AccountsID];
+            aquery = [select Name, Id, PM1__c, PM2__c, OwnerId from Account where Id = :AccountsID];
+                if(cquery.size() == 1){
+                    Case Ticket1 = new Case(Subject = 'Please create new Org for ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type1, AccountId = AccountsID, OwnerId = DOQ);
+                    insert Ticket1;
+                    if(aquery[0].PM1__c != NULL){
+                        Case Ticket2 = new Case(Subject = 'Please complete onboarding call for '+ aquery[0].Name + ' if needed', Status = 'New', RecordTypeId = Record_Type2, AccountId = AccountsID, OwnerId = aquery[0].PM1__c);
+                        insert Ticket2;
+                    }
+                    else{
+                        Case Ticket2 = new Case(Subject = 'Please complete onboarding call for '+ aquery[0].Name + ' if needed', Status = 'New', RecordTypeId = Record_Type2, AccountId = AccountsID, OwnerId = PM);
+                        insert Ticket2;
+                    }
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                    String emailAddr = [select Email from User where Id = :NC.Salesperson_endacct__c].Email;
+        			String[] toAddresses = new String[] {emailAddr};
+      				mail.setToAddresses(toAddresses);
+      				mail.setSubject('Please schedule an onboard call for client if they are completely new to DISCO');
+                    mail.setPlainTextBody('Please schedule an onboard call for client if they are completely new to DISCO');
+                    mail.setHtmlBody('Please schedule an onboard call for ' + aquery[0].Name + '  if they are completely new to DISCO:' + '</b>');
+                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+                }
+        }
+        
+
+}
