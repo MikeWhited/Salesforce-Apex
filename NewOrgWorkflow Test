@@ -1,0 +1,14 @@
+@istest
+public class NewOrgTest {
+	static testMethod void NewOrgTest() {
+	  // Create dummy records for test
+      Account Acct = new Account (name = 'Account2', Company_Profile__c = 'AmLaw 200');
+      insert Acct;
+      Id searchID = Acct.Id;
+      Contract Dummy = new Contract (name = 'Dummy', StartDate = Date.newInstance(2017,01,01), ContractTerm = 13, AccountId = Acct.Id, BillingAccount__c = Acct.Id, Salesperson_endacct__c = '0051J000004xCSHQA2');
+      insert Dummy;
+      list <Case> TicketQuery =[select Id, Subject from Case where AccountId = :searchID];
+      system.assertEquals(2,TicketQuery.size());
+        
+    }
+}
