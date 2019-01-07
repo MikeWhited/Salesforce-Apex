@@ -1,0 +1,25 @@
+trigger WPScontactCreate on Case (before insert) {
+public string mrEmail; 
+public Id WPSTicket;
+List<Contact> cquery = new List <Contact>();
+WPSTicket = Schema.SObjectType.Case.getRecordTypeInfosByName().get('WPS').getRecordTypeId();
+    for( Case WPS : trigger.new ){
+        if(WPS.Matter_Created_Email__c != NULL && WPS.RecordTypeId == WPSTicket){
+        mrEmail = WPS.Matter_Created_Email__c;
+    // Grab that provided email and do a query in our SFDC Database to see if that contact exists 
+	cquery =[select id, Name, email, phone, MailingCity, MailingStreet from Contact where email = :mrEmail];
+    if(cquery.size() == 0){
+         Contact c = new Contact(AccountId = WPS.AccountId,
+                                 email = WPS.Matter_Created_Email__c,
+                                 lastname = WPS.Matter_Created_Email__c);
+        insert c;
+        WPS.ContactId = c.id;
+    }
+    // if the query found a contact, just return the first contact and attatch it to the Ticket
+    else {
+        WPS.ContactId = cquery[0].id;
+        }
+}
+}
+}
+    
