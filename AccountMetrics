@@ -1,0 +1,107 @@
+public with sharing class AccountMetrics {
+	public string searchboxstring{get; set;}
+    public Id acct {get; set;}
+    public Double grandTotal {get; set;}
+    public Double CurrentMRR {get; set;}
+    public Double BillableGB {get; set;}
+     public list<account> result2 {get; set;}
+     public list<contract> result3 {get; set;}
+     public list<matter__c> result4 {get; set;}
+     public list<matter__c> result6 {get; set;}
+     public list<SelectOption> refine {get; set;}
+     public Integer NumOfActMatters {get; set;}
+     public Decimal ActGBSize {get; set;}
+     public Integer NumOfTotalMatters {get; set;}
+     public Decimal TotalGBSize {get; set;}
+     public string fromSelect {get; set;}
+     public Decimal usagepercent {get; set;}
+     public Decimal datacap {get; set;}
+     public void searchbox(){
+      result2=new List<Account>();
+      result2=[select ID,Name, Owner.name,Closed_Won_Opptys__c, Site, BillingCity 
+               from Account 
+               where ID = :searchboxstring];
+         Http httpProtocol = new Http();
+            // Create HTTP request to send.
+			acct = result2[0].Id;
+        	HttpRequest request = new HttpRequest();
+        	// Set the endpoint URL.
+			String APIKEY = 'Bs8KLQFmTjfwIXMVnnxA9x0tfLuc4Ehg';
+        	String endpoint = 'https://rm-api.ops.csdisco.com/account/' +acct+ '/stats';
+        	request.setEndPoint(endpoint);
+        	// Set the HTTP verb to GET.
+        	request.setMethod('GET');
+        	// Set the HTTP headers.
+			request.setHeader('x-api-key', APIKEY);
+        	// Send the HTTP request and get the response.
+        	// The response is in JSON format.
+        	HttpResponse response = httpProtocol.send(request);
+        	System.debug(response.getBody());
+        	 // Parse JSON response for field values.
+       		 JSONParser parser = JSON.createParser(response.getBody());
+       		 Double grandTotal = 0.0;
+         	 Double CurrentMRR = 0.0;
+           	 while (parser.nextToken() != null) {
+         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+                	(parser.getText() == 'mrr')) {
+               		 // Get the value.
+              	     parser.nextToken();
+              	    // Compute the grand total MRR.
+                    grandTotal += parser.getDoubleValue();
+                    CurrentMRR = parser.getDoubleValue();
+            		}
+        	}
+            while (parser.nextToken() != null) {
+         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+                	(parser.getText() == 'size')) {
+               		 // Get the value.
+              	     parser.nextToken();
+              	    // Compute the current billable size.
+                    BillableGB = parser.getDoubleValue();
+            		}
+        	}
+      result3=new List<Contract>();
+      result3=[select ID,Name,AccountId, BillingAccount__c, account.name,Price_Per_GB__c,SubscriptionDataLimit__c ,SpecialTerms,SubscriptionPricePerMonth__c,ContractNumber, EndDate, StartDate, Owner.name,Type__c, MinimumMatterCharge__c 
+               from Contract 
+               where (AccountId = :searchboxstring) OR (BillingAccount__c = :searchboxstring)];
+         
+/*RESULT 4 IS FOR ALL MATTERS*/      
+     result4 = new list<Matter__c>();   
+           result4=[select ID,Name,Matter_Display_Name__c,Active__c,First_Data_Set_Date__c,DeactivationDate__c, Salesperson__c,Total_Active_GB__c,
+                    		  Total_GB__c, Per_GB_Price_per_Month__c,Current_Price__c ,CurrentContract__r.ContractNumber, Contract_Billing_Account__c, Contract_EndUser_Account__c,Matter_EndClientAccount__c,
+                    		  Matter_EndClientAccount__r.name,Billing_Account2__c,Matter_End_User__c,Billing_Account2__r.Name,Salesperson__r.Name, CurrentContract__c  
+                    from Matter__c 
+                    where (Billing_Account2__c = :searchboxstring) OR (Matter_End_User__c = :searchboxstring)
+                    Order by Active__c DESC];
+
+/*RESULT 6 IS FOR ACTIVE MATTERS ONLY*/      
+        result6 = new list<Matter__c>();
+         result6=[select ID,Name,Active__c,First_Data_Set_Date__c,DeactivationDate__c, Salesperson__c,Total_Active_GB__c,Per_GB_Price_per_Month__c, 
+                  		    Contract_Billing_Account__c, Contract_EndUser_Account__c,Matter_EndClientAccount__c,Matter_EndClientAccount__r.name,
+                  			Billing_Account2__c,Matter_End_User__c,Billing_Account2__r.Name 
+                  from Matter__c 
+                  where Active__c = true
+                    AND CurrentContract__c = :searchboxstring];
+                  	
+/*RESULT 4 CALCS*/         
+        decimal tempSum1 = 0;
+        for(Matter__c matt:result4){
+            tempSum1 += matt.Total_GB__c;
+        }
+/*RESULT 6 CALCS*/          
+        decimal tempSum2 = 0;
+        for(Matter__c matt2:result6){
+            tempSum2 += matt2.Total_Active_GB__c;
+        }
+        TotalGBSize = tempSum1;
+        NumOfTotalMatters = result4.size();
+        ActGBSize = tempSum2;
+        NumOfActMatters = result6.size();
+        if(datacap != NULL){
+        usagepercent = (ActGBSize/datacap)*100;
+         }
+        }
+
+
+
+}
