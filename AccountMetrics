@@ -1,9 +1,10 @@
 public with sharing class AccountMetrics {
 	public string searchboxstring{get; set;}
     public Id acct {get; set;}
-    public Double grandTotal {get; set;}
-    public Double CurrentMRR {get; set;}
-    public Double BillableGB {get; set;}
+    public JSON2Apex wrapper {get; set;}
+    public Long lifetimeMRR {get; set;}
+    public Long CurrentMRR {get; set;}
+    public Long Billablesize {get; set;}
      public list<account> result2 {get; set;}
      public list<contract> result3 {get; set;}
      public list<matter__c> result4 {get; set;}
@@ -22,12 +23,12 @@ public with sharing class AccountMetrics {
                from Account 
                where ID = :searchboxstring];
          Http httpProtocol = new Http();
+         acct = searchboxstring;
             // Create HTTP request to send.
-			acct = result2[0].Id;
         	HttpRequest request = new HttpRequest();
         	// Set the endpoint URL.
 			String APIKEY = 'Bs8KLQFmTjfwIXMVnnxA9x0tfLuc4Ehg';
-        	String endpoint = 'https://rm-api.ops.csdisco.com/account/' +acct+ '/stats';
+        	String endpoint = 'https://rm-api.ops.csdisco.com/account/001o0000014sXEKAA2/stats';
         	request.setEndPoint(endpoint);
         	// Set the HTTP verb to GET.
         	request.setMethod('GET');
@@ -36,11 +37,14 @@ public with sharing class AccountMetrics {
         	// Send the HTTP request and get the response.
         	// The response is in JSON format.
         	HttpResponse response = httpProtocol.send(request);
-        	System.debug(response.getBody());
+            String son = '{"Months" : '+ response.getBody() +'}';
+            wrapper = JSON2Apex.parse(son);
+        	//System.debug(response.getBody());
         	 // Parse JSON response for field values.
        		 JSONParser parser = JSON.createParser(response.getBody());
        		 Double grandTotal = 0.0;
-         	 Double CurrentMRR = 0.0;
+         	 Double Current = 0.0;
+           	 Double BillableGB = 0.0;
            	 while (parser.nextToken() != null) {
          	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
                 	(parser.getText() == 'mrr')) {
@@ -48,18 +52,19 @@ public with sharing class AccountMetrics {
               	     parser.nextToken();
               	    // Compute the grand total MRR.
                     grandTotal += parser.getDoubleValue();
-                    CurrentMRR = parser.getDoubleValue();
+                    Current = parser.getDoubleValue();
             		}
-        	}
-            while (parser.nextToken() != null) {
-         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+           	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
                 	(parser.getText() == 'size')) {
                		 // Get the value.
               	     parser.nextToken();
               	    // Compute the current billable size.
                     BillableGB = parser.getDoubleValue();
             		}
-        	}
+             }
+            lifetimeMRR = grandTotal.round();
+            CurrentMRR = Current.round();
+            Billablesize = BillableGB.round();
       result3=new List<Contract>();
       result3=[select ID,Name,AccountId, BillingAccount__c, account.name,Price_Per_GB__c,SubscriptionDataLimit__c ,SpecialTerms,SubscriptionPricePerMonth__c,ContractNumber, EndDate, StartDate, Owner.name,Type__c, MinimumMatterCharge__c 
                from Contract 
