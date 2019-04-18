@@ -1,0 +1,32 @@
+trigger Update_Billing_Account on Matter__c (before insert, before update) {
+    public Id matter;
+    public Id cont;
+    public date tday;
+    List<ContractSpan__c> Initialquery = new List <ContractSpan__c>();
+    List<Contract> fallbackquery = new List <Contract>();
+    // will fire each time a matter is created or edited
+    for(Matter__c mat : trigger.new){
+    matter = mat.Id;
+    cont = mat.Contract__c;
+    tday = system.today();
+        if(trigger.isBefore && trigger.isInsert){
+             fallbackquery =[select id, Name, BillingAccount__c from Contract where Id = :cont];
+             mat.CurrentContract__c = mat.Contract__c;
+             mat.Billing_Account2__c = fallbackquery[0].BillingAccount__c;
+        }
+        else if(trigger.isBefore && trigger.isUpdate){
+    // Run a query with the matters Id and see if any contract spans exist for it with no end date and sort it by created date so that the newest is in the first row
+    Initialquery =[select id, Name,matter__c,Contract__c,Contract__r.BillingAccount__c from ContractSpan__c where (Matter__c = :matter AND (End_Date__c = NULL OR End_Date__c > :tday) AND Start_Date__c <= :tday) ORDER BY CreatedDate DESC];
+    // If that returns anthing then take the billing account on the contract it is spanned to and fill it in the lookup field on the matter for Billing Account (Ops doesn't look at this)
+    if(Initialquery.size() != 0){
+        mat.CurrentContract__c = Initialquery[0].Contract__c;
+        mat.Billing_Account2__c = Initialquery[0].Contract__r.BillingAccount__c;
+    }
+    }
+        // If not then just check the fire trigger (this is basically a cop out check box)
+        else{
+            mat.FIRE_TRIGGER__c = TRUE;
+        }
+    }
+
+}
