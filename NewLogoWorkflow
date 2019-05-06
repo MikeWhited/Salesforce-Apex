@@ -43,7 +43,7 @@ trigger NewOrgWorkflow on Contract (after insert) {
                     mail.setSenderDisplayName(fromaddress2);
                     mail.setSubject('Please assign PMs to this account');
                     mail.setPlainTextBody('Please assign PMs to this account and let the salesperson know');
-                    mail.setHtmlBody('     Please assign PMs to the account: ' + aquery[0].Name + '  . The salesperson here is ' + cquery[0].Salesperson_endacct__r.Name + '</b>' + 'Here is the link to the ticket: ' + Recordlink2);
+                    mail.setHtmlBody('     Please assign PMs to the account: ' + aquery[0].Name + '  . The salesperson here is ' + cquery[0].Salesperson_endacct__r.Name + '</b>' + '. ' + '</br>' + 'Here is the link to the ticket: ' + Recordlink2);
                     Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
                     // Temp email to dataops to create New Org
                     Messaging.SingleEmailMessage mail2 = new Messaging.SingleEmailMessage();
@@ -54,7 +54,7 @@ trigger NewOrgWorkflow on Contract (after insert) {
                     mail2.setSenderDisplayName(fromaddress);
                     mail2.setSubject('Please Create a New Org for this Client');
                     mail2.setPlainTextBody('Please create an Organization for this client if they do not already have an Org');
-                    mail2.setHtmlBody('     The new Client is: ' + aquery[0].Name + '  The name of their default contract is "' + cquery[0].Name + '</b>' + '". The salesperson is ' + cquery[0].Salesperson_endacct__r.Name  + '</b>' + ' . This is the link to the ticket: ' + Recordlink );
+                    mail2.setHtmlBody('     The new Client is: ' + aquery[0].Name + '  The name of their default contract is "' + cquery[0].Name + '</b>' + '". The salesperson is ' + cquery[0].Salesperson_endacct__r.Name  + '</b>' + '. ' + '</br>' + 'Here is the link to the ticket: ' + Recordlink);
                     Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail2 });
                 }
         }
