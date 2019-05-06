@@ -1,0 +1,64 @@
+trigger NewOrgWorkflow on Contract (after insert) {
+    public ID AccountsID;
+    public ID ContractID;
+    public ID Record_Type1;
+    public ID Record_Type2;
+    public ID PM;
+    public ID DOQ;
+    public ID Salesperson;
+    public ID RecordId;
+    public String Recordlink;
+    public ID RecordId2;
+    public String Recordlink2;
+    List<Contract> cquery = new List <Contract>();
+    List<Account> aquery = new List <Account>();
+    // fires when a new Contract record is created and saves before connections are made.
+        for(Contract NC : trigger.new){
+            //Grabs the contracts Account ID and the Salesperson along witht the Queue IDs and needed case record types
+            ContractID = NC.Id;
+            AccountsID = NC.AccountId;
+            Salesperson = NC.Salesperson_endacct__c;
+            PM = '00G1J000002Qs9vUAC';
+            Record_Type1 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('New Org').getRecordTypeId();
+            Record_Type2 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('PM Manager').getRecordTypeId();
+            DOQ = '00G1J0000034UhUUAU';
+            // query to see how many contracts this account has and then information from the account
+            cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c from Contract where AccountID = :AccountsID];
+            aquery = [select Name, Id, PM1__c, PM2__c,PM3__c, PM1__r.Name , PM2__r.Name,PM3__r.Name, OwnerId, PrimaryOrgContact__c from Account where Id = :AccountsID];
+                // We onky want this trigger to follow if it's the accounts first contract so we check and see if it is by checking the size of the contract query
+                if(cquery.size() == 1){
+                    Case Ticket1 = new Case(Subject = 'Please create new Org for ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type1, Contract__c = ContractID, Org_Admins__c = aquery[0].PrimaryOrgContact__c, AccountId = aquery[0].Id, OwnerId = '00G1J0000034UhUUAU');
+                    insert Ticket1;
+                    RecordId = Ticket1.Id;
+                    Recordlink = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId;
+                    Case Ticket2 = new Case(Subject = 'Please assign PMs to ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type2, Contract__c = ContractID, Org_Admins__c = aquery[0].PrimaryOrgContact__c, AccountId = aquery[0].Id, OwnerId = '00G1J000002Qs9vUAC');
+                    insert Ticket2;
+                    RecordId2 = Ticket2.Id;
+                    Recordlink2 = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId2;
+                    // Generate the email to send to sales to introduce PMs and onboard a new client
+                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+                    String emailAddr = ['narrow@csdisco.com', 'greenberg@csdisco.com', 'mann-anand@csdisco.com',  'whited@csdisco.com'];
+                    String[] toAddresses = new String[] {emailAddr};
+                    String fromaddress2 = 'salesops@csdisco.com';
+                    mail.setToAddresses(toAddresses);
+                    mail.setSenderDisplayName(fromaddress2);
+                    mail.setSubject('Please assign PMs to this account');
+                    mail.setPlainTextBody('Please assign PMs to this account and let the salesperson know');
+                    mail.setHtmlBody('     Please assign PMs to the account: ' + aquery[0].Name + '  . The salesperson here is ' + cquery[0].Salesperson_endacct__c.Name + '</b>' + 'Here is the link to the ticket: ' + Recordlink2);
+                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+                    // Temp email to dataops to create New Org
+                    Messaging.SingleEmailMessage mail2 = new Messaging.SingleEmailMessage();
+                    String emailAddr2 = 'dataops@csdisco.com';
+                    String[] toAddresses2 = new String[] {emailAddr2};
+                    String fromaddress = 'salesops@csdisco.com';
+                    mail2.setToAddresses(toAddresses2);
+                    mail2.setSenderDisplayName(fromaddress);
+                    mail2.setSubject('Please Create a New Org for this Client');
+                    mail2.setPlainTextBody('Please create an Organization for this client if they do not already have an Org');
+                    mail2.setHtmlBody('     The new Client is: ' + aquery[0].Name + '  The name of their default contract is "' + cquery[0].Name + '</b>' + '". Their PMs are ' + aquery[0].PM1__r.Name + ' , ' + aquery[0].PM2__r.Name + ' , ' + aquery[0].PM3__r.Name + '</b>' + ' . This is the link to the ticket: ' + Recordlink );
+                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail2 });
+                }
+        }
+        
+
+}
