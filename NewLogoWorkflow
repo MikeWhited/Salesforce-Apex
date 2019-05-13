@@ -2,14 +2,11 @@ trigger NewOrgWorkflow on Contract (after insert) {
     public ID AccountsID;
     public ID ContractID;
     public ID Record_Type1;
-    public ID Record_Type2;
     public ID PM;
     public ID DOQ;
     public ID Salesperson;
     public ID RecordId;
     public String Recordlink;
-    public ID RecordId2;
-    public String Recordlink2;
     List<Contract> cquery = new List <Contract>();
     List<Account> aquery = new List <Account>();
     // fires when a new Contract record is created and saves before connections are made.
@@ -18,9 +15,7 @@ trigger NewOrgWorkflow on Contract (after insert) {
             ContractID = NC.Id;
             AccountsID = NC.AccountId;
             Salesperson = NC.Salesperson_endacct__c;
-            PM = '00G1J000002Qs9vUAC';
             Record_Type1 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('New Org').getRecordTypeId();
-            Record_Type2 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('PM Manager').getRecordTypeId();
             DOQ = '00G1J0000034UhUUAU';
             // query to see how many contracts this account has and then information from the account
             cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c, Salesperson_endacct__r.Name from Contract where AccountID = :AccountsID];
@@ -31,20 +26,6 @@ trigger NewOrgWorkflow on Contract (after insert) {
                     insert Ticket1;
                     RecordId = Ticket1.Id;
                     Recordlink = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId;
-                    Case Ticket2 = new Case(Subject = 'Please assign PMs to ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type2, Contract__c = ContractID, Org_Admins__c = aquery[0].PrimaryOrgContact__c, AccountId = aquery[0].Id, OwnerId = '00G1J000002Qs9vUAC');
-                    insert Ticket2;
-                    RecordId2 = Ticket2.Id;
-                    Recordlink2 = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId2;
-                    // Generate the email to send to sales to introduce PMs and onboard a new client
-                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                    String[] toAddresses = new String[] {'narrow@csdisco.com', 'greenberg@csdisco.com', 'mann-anand@csdisco.com',  'whited@csdisco.com'};
-                    String fromaddress2 = 'salesops@csdisco.com';
-                    mail.setToAddresses(toAddresses);
-                    mail.setSenderDisplayName(fromaddress2);
-                    mail.setSubject('Please assign PMs to this account');
-                    mail.setPlainTextBody('Please assign PMs to this account and let the salesperson know');
-                    mail.setHtmlBody('     Please assign PMs to the account: ' + aquery[0].Name + '  . The salesperson here is ' + cquery[0].Salesperson_endacct__r.Name + '</b>' + '. ' + '</br>' + 'Here is the link to the ticket: ' + Recordlink2);
-                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
                     // Temp email to dataops to create New Org
                     Messaging.SingleEmailMessage mail2 = new Messaging.SingleEmailMessage();
                     String emailAddr2 = 'dataops@csdisco.com';
