@@ -19,7 +19,7 @@ trigger NewOrgWorkflow on Contract (after insert) {
             DOQ = '00G1J0000034UhUUAU';
             // query to see how many contracts this account has and then information from the account
             cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c, Salesperson_endacct__r.Name from Contract where AccountID = :AccountsID];
-            aquery = [select Name, Id, PM1__c, PM2__c,PM3__c, PM1__r.Name , PM2__r.Name,PM3__r.Name, OwnerId, PrimaryOrgContact__c from Account where Id = :AccountsID];
+            aquery = [select Name, Id, PM1__c, PM2__c, PM1__r.Email, PM2__r.Email,PM3__c, PM1__r.Name , PM2__r.Name,PM3__r.Name, OwnerId, PrimaryOrgContact__c from Account where Id = :AccountsID];
                 // We onky want this trigger to follow if it's the accounts first contract so we check and see if it is by checking the size of the contract query
                 if(cquery.size() == 1){
                     Case Ticket1 = new Case(Subject = 'Please create new Org for ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type1, Contract__c = ContractID, Org_Admins__c = aquery[0].PrimaryOrgContact__c, AccountId = aquery[0].Id, OwnerId = '00G1J0000034UhUUAU');
@@ -28,8 +28,10 @@ trigger NewOrgWorkflow on Contract (after insert) {
                     Recordlink = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId;
                     // Temp email to dataops to create New Org
                     Messaging.SingleEmailMessage mail2 = new Messaging.SingleEmailMessage();
+                    String emailAddr0 = aquery[0].PM1__r.Email;
+                    String emailAddr1 = aquery[0].PM2__r.Email;
                     String emailAddr2 = 'dataops@csdisco.com';
-                    String[] toAddresses2 = new String[] {emailAddr2};
+                    String[] toAddresses2 = new String[] {emailAddr2, emailAddr0, emailAddr1};
                     String fromaddress = 'salesops@csdisco.com';
                     mail2.setToAddresses(toAddresses2);
                     mail2.setSenderDisplayName(fromaddress);
