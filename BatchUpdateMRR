@@ -1,0 +1,45 @@
+global class BatchUpdateMRR implements Schedulable, Database.AllowsCallouts{
+    public Id actid;
+    @future(callout=true)
+    global static void execute(System.SchedulableContext ctx){
+    List<Account> acct = new List<Account>();
+    Acct = [select Id, Name, Current_Month_MRR_as_Billed_Account__c from account where Current_Month_MRR_as_Billed_Account__c != 0];
+    List<Account> toupdate = new List<Account>();
+    for(account a:Acct){
+        Id look = a.Id;
+        Http httpProtocol = new Http();
+            // Create HTTP request to send.
+        	HttpRequest request = new HttpRequest();
+			String APIKEY = 'Bs8KLQFmTjfwIXMVnnxA9x0tfLuc4Ehg';
+        	String endpoint = 'https://rm-api.ops.csdisco.com/account/' +look+ '/stats';
+        	request.setEndPoint(endpoint);
+        	// Set the HTTP verb to GET.
+        	request.setMethod('GET');
+        	// Set the HTTP headers.
+			request.setHeader('x-api-key', APIKEY);
+        	// Send the HTTP request and get the response.
+        	// The response is in JSON format.
+        	HttpResponse response = httpProtocol.send(request);
+         JSONParser parser = JSON.createParser(response.getBody());
+       		 Double grandTotal = 0.0;
+         	 Double Current = 0.0;
+           	 Double BillableGB = 0.0;
+           	 while (parser.nextToken() != null) {
+         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+                	(parser.getText() == 'mrr')) {
+               		 // Get the value.
+              	     parser.nextToken();
+              	    // Compute the grand total MRR.
+                    grandTotal += parser.getDoubleValue();
+                    Current = parser.getDoubleValue();
+            		}
+          }
+        if(Current != 0){
+        a.Current_Month_MRR_as_Billed_Account__c = Current;
+        toupdate.add (a);
+        }
+    }
+        update toupdate;
+    }
+        
+}
