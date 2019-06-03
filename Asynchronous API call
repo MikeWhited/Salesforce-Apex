@@ -1,0 +1,43 @@
+Http httpProtocol = new Http();
+            // Create HTTP request to send.
+			Id acct = '001o0000014sXEKAA2';
+        	HttpRequest request = new HttpRequest();
+        	// Set the endpoint URL.
+			String APIKEY = 'Bs8KLQFmTjfwIXMVnnxA9x0tfLuc4Ehg';
+        	String endpoint = 'https://rm-api.ops.csdisco.com/account/' +acct+ '/stats';
+        	request.setEndPoint(endpoint);
+        	// Set the HTTP verb to GET.
+        	request.setMethod('GET');
+        	// Set the HTTP headers.
+			request.setHeader('x-api-key', APIKEY);
+        	// Send the HTTP request and get the response.
+        	// The response is in JSON format.
+        	HttpResponse response = httpProtocol.send(request);
+        	System.debug(response.getBody());
+        	 // Parse JSON response for field values.
+       		 JSONParser parser = JSON.createParser(response.getBody());
+       		 Double grandTotal = 0.0;
+         	 Double CurrentMRR = 0.0;
+         	 Double BillableGB = 0.0;
+           	 while (parser.nextToken() != null) {
+         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+                	(parser.getText() == 'mrr')) {
+               		 // Get the value.
+              	     parser.nextToken();
+              	    // Compute the grand total MRR.
+                    grandTotal += parser.getDoubleValue();
+                    CurrentMRR = parser.getDoubleValue();
+            		}
+        	}
+            while (parser.nextToken() != null) {
+         	   if ((parser.getCurrentToken() == JSONToken.FIELD_NAME) && 
+                	(parser.getText() == 'size')) {
+               		 // Get the value.
+              	     parser.nextToken();
+              	    // Compute the current billable size.
+                    BillableGB = parser.getDoubleValue();
+            		}
+        	}
+			system.debug('Total MRR=' + grandTotal);
+			system.debug('CurrentMRR=' + CurrentMRR);
+			system.debug('Current Bilable Size=' + BillableGB);
