@@ -1,0 +1,25 @@
+@istest
+private class BatchUpdateTest{
+    
+ static testmethod void BatchUpdateMRR(){
+ 	String CRON_EXP = '0 0 1 * * ?';
+    List<Account> acct = new List<Account>();
+    List<Account> toupdate = new List<Account>();
+    Account Acct1 = new Account (name = 'Account2', Company_Profile__c = 'AmLaw 200', PM1__c = '0051J000004xCSHQA2');
+      acct.add(Acct1);
+    Account Acct2 = new Account (name = 'Account22', Company_Profile__c = 'AmLaw 200', PM1__c = '0051J000004xCSHQA2');
+      acct.add(Acct2);
+    for(account a:acct){
+     Id look = a.Id;
+        toupdate.add (a);
+    }
+    insert toupdate;
+    SingleRequestMock fakeResponse = new SingleRequestMock(200,
+                                                 'Complete',
+                                                 '[{"Name": "sForceTest1"}]',
+                                                 null);
+   Test.setMock(HttpCalloutMock.class, fakeResponse);
+    Test.startTest(); 
+    String jobId = System.schedule('BatchUpdateMRR', CRON_EXP, new BatchUpdateMRR()); 
+}
+}
