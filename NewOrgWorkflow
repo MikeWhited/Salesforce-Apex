@@ -1,46 +1,42 @@
-trigger NewOrgWorkflow on Contract (before insert) {
-	public ID AccountsID;
+trigger NewOrgWorkflow on Contract (after insert) {
+    public ID AccountsID;
+    public ID ContractID;
     public ID Record_Type1;
-    public ID Record_Type2;
     public ID PM;
     public ID DOQ;
     public ID Salesperson;
-	List<Contract> cquery = new List <Contract>();
+    public ID RecordId;
+    public String Recordlink;
+    List<Contract> cquery = new List <Contract>();
     List<Account> aquery = new List <Account>();
     // fires when a new Contract record is created and saves before connections are made.
-    	for(Contract NC : trigger.new){
+        for(Contract NC : trigger.new){
             //Grabs the contracts Account ID and the Salesperson along witht the Queue IDs and needed case record types
+            ContractID = NC.Id;
             AccountsID = NC.AccountId;
             Salesperson = NC.Salesperson_endacct__c;
-            PM = '00G1J000002Qs9vUAC';
             Record_Type1 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('New Org').getRecordTypeId();
-            Record_Type2 = Schema.SObjectType.Case.getRecordTypeInfosByName().get('Onboarding').getRecordTypeId();
             DOQ = '00G1J0000034UhUUAU';
             // query to see how many contracts this account has and then information from the account
-            cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c from Contract where AccountID = :AccountsID];
-            aquery = [select Name, Id, PM1__c, PM2__c,PM3__c, PM1__r.Name , PM2__r.Name,PM3__r.Name, OwnerId from Account where Id = :AccountsID];
+            cquery = [select Name, Id, AccountID, Account.Name, Salesperson_endacct__c, Salesperson_endacct__r.Name from Contract where AccountID = :AccountsID];
+            aquery = [select Name, Id, PM1__c, PM2__c,PM3__c, PM1__r.Name , PM2__r.Name,PM3__r.Name, OwnerId, PrimaryOrgContact__c from Account where Id = :AccountsID];
                 // We onky want this trigger to follow if it's the accounts first contract so we check and see if it is by checking the size of the contract query
-                if(cquery.size() == 0){
-                    Case Ticket1 = new Case(Subject = 'Please create new Org for ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type1, AccountId = aquery[0].Id, OwnerId = '00G1J0000034UhUUAU');
+                if(cquery.size() == 1){
+                    Case Ticket1 = new Case(Subject = 'Please create new Org for ' + aquery[0].Name + ' if necessary', Status = 'New', RecordTypeId = Record_Type1, Contract__c = ContractID, Org_Admins__c = aquery[0].PrimaryOrgContact__c, AccountId = aquery[0].Id, OwnerId = '00G1J0000034UhUUAU');
                     insert Ticket1;
-                    // Check and see if the PM field is null, if not assign Onboarding to them, if so, assign to PM Manager Queue
-                    if(aquery[0].PM1__c != NULL){
-                        Case Ticket2 = new Case(Subject = 'Please complete onboarding call for '+ aquery[0].Name + ' if needed', Status = 'New', RecordTypeId = Record_Type2, AccountId = aquery[0].Id, OwnerId = aquery[0].PM1__c, Sales_Person__c = Salesperson);
-                        insert Ticket2;
-                    }
-                    else{
-                        Case Ticket2 = new Case(Subject = 'Please complete onboarding call for '+ aquery[0].Name + ' if needed', Status = 'New', RecordTypeId = Record_Type2, AccountId = aquery[0].Id, OwnerId = PM, Sales_Person__c = Salesperson);
-                        insert Ticket2;
-                    }
-                    // Generate the email to send to sales to introduce PMs and onboard a new client
-                    Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
-                    String emailAddr = [select Email from User where Id = :NC.Salesperson_endacct__c].Email;
-        			String[] toAddresses = new String[] {emailAddr};
-      				mail.setToAddresses(toAddresses);
-      				mail.setSubject('Please introduce your client to their PM team if they are completely new to DISCO');
-                    mail.setPlainTextBody('Please introduce your client to their PM team if they are completely new to DISCO so they can get their on-boarding started');
-                    mail.setHtmlBody('     Please introduce your client ' + aquery[0].Name + '  to their PM team if they are completely new to DISCO so they can get their on-boarding started.' + '</b>' + ' Their PMs are ' + aquery[0].PM1__r.Name + ' , ' + aquery[0].PM2__r.Name + ' , ' + aquery[0].PM3__r.Name + '</b>');
-                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+                    RecordId = Ticket1.Id;
+                    Recordlink = URL.getSalesforceBaseUrl().toExternalForm()+'/'+RecordId;
+                    // Temp email to dataops to create New Org
+                    Messaging.SingleEmailMessage mail2 = new Messaging.SingleEmailMessage();
+                    String emailAddr2 = 'dataops@csdisco.com';
+                    String[] toAddresses2 = new String[] {emailAddr2};
+                    String fromaddress = 'salesops@csdisco.com';
+                    mail2.setToAddresses(toAddresses2);
+                    mail2.setSenderDisplayName(fromaddress);
+                    mail2.setSubject('Please Create a New Org for this Client');
+                    mail2.setPlainTextBody('Please create an Organization for this client if they do not already have an Org');
+                    mail2.setHtmlBody('     The new Client is: ' + aquery[0].Name + '  The name of their default contract is "' + cquery[0].Name + '</b>' + '". The salesperson is ' + cquery[0].Salesperson_endacct__r.Name  + '</b>' + '. ' + '</br>' + 'Here is the link to the ticket: ' + Recordlink);
+                    Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail2 });
                 }
         }
         
