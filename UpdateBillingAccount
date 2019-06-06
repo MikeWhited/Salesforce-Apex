@@ -3,7 +3,6 @@ trigger Update_Billing_Account on Matter__c (before insert, before update) {
     public Id cont;
     public date tday;
     public Id acct;
-    List<Account> q = new List <Account>();
     List<ContractSpan__c> Initialquery = new List <ContractSpan__c>();
     List<Contract> fallbackquery = new List <Contract>();
     // will fire each time a matter is created or edited
@@ -14,21 +13,9 @@ trigger Update_Billing_Account on Matter__c (before insert, before update) {
     tday = system.today();
         if(trigger.isBefore && trigger.isInsert){
              fallbackquery =[select id, Name, BillingAccount__c, AccountId from Contract where Id = :cont];
-             q = [select id,Name,PM1__c,PM2__c,PM3__c,Account_Manager2__c FROM Account where id = :acct];
              mat.CurrentContract__c = mat.Contract__c;
              mat.Billing_Account2__c = fallbackquery[0].BillingAccount__c;
              mat.Matter_End_User__c = fallbackquery[0].AccountId;
-            if(q.size() > 0){
-       			 mat.MatterAccount_Manager__c = q[0].Account_Manager2__c;
-       			 mat.MatterPM_1__c = q[0].PM1__c;
-       			 mat.MatterPM_2__c = q[0].PM2__c;
-      		 	 mat.MatterPM_3__c = q[0].PM3__c;
-            }
-            // if for some reason query is blank check box
-            else{
-                mat.Waiting_on_PM__c = TRUE;
-            }
-            
         }
         else if(trigger.isBefore && trigger.isUpdate){
     // Run a query with the matters Id and see if any contract spans exist for it with no end date and sort it by created date so that the newest is in the first row
